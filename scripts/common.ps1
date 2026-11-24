@@ -109,8 +109,12 @@ function Initialize-ChemFoam {
         $npm = Join-Path (Split-Path $Node) 'npm.cmd'
         if (-not (Test-Path $npm)) { $npm = 'npm.cmd' }
         Push-Location (Join-Path $Root 'server')
+        # Windows PowerShell 5.1 turns a native tool's stderr into a terminating error when
+        # $ErrorActionPreference is 'Stop' and stderr is redirected, so relax it for this call.
+        $ErrorActionPreference = 'Continue'
         $out = & $npm install --no-audit --no-fund 2>&1
         $code = $LASTEXITCODE
+        $ErrorActionPreference = 'Stop'
         Pop-Location
         if ($code -ne 0) {
             Write-Host 'npm install failed:' -ForegroundColor Red
@@ -143,8 +147,17 @@ basicConstraints = CA:FALSE
 keyUsage = digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth
 "@ | Set-Content -Path $cnf -Encoding Ascii
+    # openssl prints its key-generation progress to stderr; under 'Stop' Windows PowerShell 5.1
+    # would treat that as a fatal NativeCommandError, so relax it for this call.
+    $ErrorActionPreference = 'Continue'
     & $OpenSsl req -x509 -newkey rsa:2048 -nodes -days 825 -keyout $key -out $cert -config $cnf 2>&1 | Out-Null
-    if ($LASTEXITCODE -eq 0) { Set-Content -Path $ipFile -Value $LanIp -NoNewline -Encoding Ascii }
+    $code = $LASTEXITCODE
+    $ErrorActionPreference = 'Stop'
+    if ($code -eq 0) {
+        Set-Content -Path $ipFile -Value $LanIp -NoNewline -Encoding Ascii
+    } else {
+        Remove-Item $cert, $key -ErrorAction SilentlyContinue   # https link is optional; just skip it
+    }
 }
 
 function Test-HttpsAvailable {

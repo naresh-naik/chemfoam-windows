@@ -105,6 +105,8 @@ cd chemfoam-windows
 .\start-chemfoam.cmd
 ```
 
+> Run it from the top-level `chemfoam-windows` folder, not from `server` or another subfolder. If you see *"The term '.\start-chemfoam.cmd' is not recognized"*, run `cd ..` (or `cd $HOME\Downloads\chemfoam-windows`) and try again. You don't need to run `npm install` yourself, because the first start does it.
+
 The first start takes about a minute (it installs the server's dependencies and detects your best video encoder). When it's ready you'll see:
 
 ```
